@@ -3,11 +3,11 @@ import java.util.*;
 
 public class Computer 
 {
-    private Map<BigInteger, float[]> rewardsTable;
+    private final Map<BigInteger, float[]> rewardsTable;
 
-    private Game game;
-    private double learningRate;
-    private double discountFactor;
+    private final Game game;
+    private final double learningRate;
+    private final double discountFactor;
     private double explorationRate;
 
     public Computer(Game g, double l, double d, double e)
@@ -57,48 +57,22 @@ public class Computer
         return rewardsTable.computeIfAbsent(boardState, key -> new float[game.getBoardSize()]);
     }
 
-    private boolean isWinningMove(Boolean[][] board, int row, int col, boolean playerMark)
+    // Simulate the next move (hense the row/col, and the currentPlayer), and return true if it wins
+    private boolean isWinningMove(Boolean[][] board, int row, int col, boolean currentPlayer)
     {
-        board[row][col] = playerMark;
-        boolean win = isWinningPosition(board, row, col, playerMark);
+        board[row][col] = currentPlayer;
+        boolean win = false;
+        for (int i = 0; i < 4; i++)
+        {
+            if (game.checkDirection(board, row, col, i, game.getWinCondition()))
+            {
+                win = true;
+            }
+        }
         board[row][col] = null;
         return win;
     }
 
-    private boolean isWinningPosition(Boolean[][] board, int row, int col, boolean playerMark)
-    {
-        return countInDirection(board, row, col, 0, 1, playerMark) >= game.getWinCondition()
-            || countInDirection(board, row, col, 1, 0, playerMark) >= game.getWinCondition()
-            || countInDirection(board, row, col, 1, 1, playerMark) >= game.getWinCondition()
-            || countInDirection(board, row, col, 1, -1, playerMark) >= game.getWinCondition();
-    }
-
-    private int countInDirection(Boolean[][] board, int row, int col, int dRow, int dCol, boolean playerMark)
-    {
-        return 1
-            + countConsecutive(board, row, col, dRow, dCol, playerMark)
-            + countConsecutive(board, row, col, -dRow, -dCol, playerMark);
-    }
-
-    private int countConsecutive(Boolean[][] board, int row, int col, int dRow, int dCol, boolean playerMark)
-    {
-        int count = 0;
-        int r = row + dRow;
-        int c = col + dCol;
-
-        while (r >= 0 && r < game.getNumRows() && c >= 0 && c < game.getNumCols())
-        {
-            if (board[r][c] == null || board[r][c] != playerMark)
-            {
-                break;
-            }
-            count++;
-            r += dRow;
-            c += dCol;
-        }
-
-        return count;
-    }
     
     private int chooseCenterMoveIndex()
     {
@@ -273,7 +247,7 @@ public class Computer
 
             while (true) 
             { 
-                if (game.getCurrentPlayer()) // if it's the "player's" turn, then make a random move
+                if (game.getCurrentPlayer()) // if it's the "player's" turn, then make a random move, and use the heuristics if neccesary
                 {
                     int randomMove = chooseRandomMoveIndex();
                     int immediateMove = chooseImmediateMoveIndex();

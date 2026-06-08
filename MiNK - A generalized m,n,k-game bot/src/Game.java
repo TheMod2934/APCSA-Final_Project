@@ -96,37 +96,42 @@ public class Game
      * @return value is whether or not the player that just went won (true if yes, false if no)
      */
 
-    public boolean checkDirection(int row, int col, int direction)
+    public boolean checkDirection(Boolean[][] board, int row, int col, int direction, int win)
     {
         Boolean target = board[row][col];
         if (target == null) return false;
 
-        for (int i = 0; i < numToWin; i++)
+        int[][] directionDeltas = {
+            {0, 1},  // horizontal
+            {1, 0},  // vertical
+            {1, 1},  // diagonal down-right
+            {1, -1}  // diagonal down-left
+        };
+
+        int dRow = directionDeltas[direction][0];
+        int dCol = directionDeltas[direction][1];
+
+        int count = 1;
+
+        int r = row + dRow;
+        int c = col + dCol;
+        while (r >= 0 && r < numRows && c >= 0 && c < numCols && Objects.equals(board[r][c], target))
         {
-            int r = row;
-            int c = col;
-            
-            switch (direction)
-            {
-                case 0 -> c += i;
-                case 1 -> r += i;
-                case 2 -> { r += i; c += i; }
-                case 3 -> { r += i; c -= i; }
-            }
-
-            if (r < 0 || r >= numRows || c < 0 || c >= numCols) 
-            {
-                return false;
-            }
-
-            // Check piece match
-            if (!Objects.equals(board[r][c], target))
-            {
-                return false;
-            }
+            count++;
+            r += dRow;
+            c += dCol;
         }
 
-        return true;
+        r = row - dRow;
+        c = col - dCol;
+        while (r >= 0 && r < numRows && c >= 0 && c < numCols && Objects.equals(board[r][c], target))
+        {
+            count++;
+            r -= dRow;
+            c -= dCol;
+        }
+
+        return count >= win;
     }
 
     /**
@@ -143,7 +148,7 @@ public class Game
                 if (board[r][c] == null) { continue; }
                 for (int i = 0; i < 4; i++)
                 {
-                    if (checkDirection(r, c, i)) { return true; }
+                    if (checkDirection(board, r, c, i, numToWin)) { return true; }
                 }
             }
         }
