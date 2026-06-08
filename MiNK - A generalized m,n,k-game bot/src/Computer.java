@@ -291,8 +291,21 @@ public class Computer
                 if (game.getCurrentPlayer()) // if it's the "player's" turn, then make a random move
                 {
                     int randomMove = chooseRandomMoveIndex();
-                    game.makeMove(game.getRowFromIndex(randomMove), game.getColFromIndex(randomMove));
+                    int immediateMove = chooseImmediateMoveIndex();
+                    int centerMove = chooseCenterMoveIndex();
 
+                    if (immediateMove != -1)
+                    {
+                        game.makeMove(game.getRowFromIndex(immediateMove), game.getColFromIndex(immediateMove));
+                    }
+                    else if (centerMove != -1)
+                    {
+                        game.makeMove(game.getRowFromIndex(centerMove), game.getColFromIndex(centerMove));
+                    }
+                    else
+                    {
+                        game.makeMove(game.getRowFromIndex(randomMove), game.getColFromIndex(randomMove));
+                    }
                     if (game.checkWin())
                     {
                         if (lastState != null) // if the random player won, then "punish" the model (hence the reward of -1.0)

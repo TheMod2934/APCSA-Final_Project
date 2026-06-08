@@ -15,7 +15,7 @@ public class GameRunner
             System.out.println("What is the length of the board?");
             numCols = input.nextInt();
 
-            if (numCols < 26)
+            if (numCols <= 26)
             {
                 break;
             }
@@ -30,7 +30,7 @@ public class GameRunner
             System.out.println("What is the width of the board?");
             numRows = input.nextInt();
 
-            if (numRows < 26)
+            if (numRows <= 26)
             {
                 break;
             }
@@ -45,7 +45,7 @@ public class GameRunner
             System.out.println("How many Xes or Oes are needed to win?");
             winCondition = input.nextInt();
 
-            if (winCondition < Math.min(numRows, numCols))
+            if (winCondition <= Math.min(numRows, numCols))
             {
                 break;
             }
