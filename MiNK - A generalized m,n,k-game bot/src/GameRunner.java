@@ -2,31 +2,104 @@ import java.util.*;
 
 public class GameRunner 
 {
-    public static void main(String[] args)
+    public static void main(String[] args) throws InterruptedException
     {
         Scanner input = new Scanner(System.in);
 
-        System.out.println("What is the length of the board?");
-        int numCols = input.nextInt();
+        int numRows = Integer.MAX_VALUE;
+        int numCols = Integer.MAX_VALUE;
+        int winCondition = Integer.MAX_VALUE;
 
-        System.out.println("What is the width of the board?");
-        int numRows = input.nextInt();
+        while (true)
+        {
+            System.out.println("What is the length of the board?");
+            numCols = input.nextInt();
 
-        System.out.println("How many Xes or Oes are needed to win?");
-        int winCondition = input.nextInt();
+            if (numCols < 26)
+            {
+                break;
+            }
+            else
+            {
+                System.out.println("Invalid length. Please input a length shorter than 26.");
+            }
+        }
 
-        System.out.println("How many times do you want the model to train? (for more spaces on the board, it is recommended to have more training sessions in order for intelligent play)");
-        long sims = input.nextLong();
+        while (true) 
+        { 
+            System.out.println("What is the width of the board?");
+            numRows = input.nextInt();
+
+            if (numRows < 26)
+            {
+                break;
+            }
+            else
+            {
+                System.out.println("Invalid length. Please input a width shorter than 26.");
+            }
+        }
+
+        while (true) 
+        {
+            System.out.println("How many Xes or Oes are needed to win?");
+            winCondition = input.nextInt();
+
+            if (winCondition < Math.min(numRows, numCols))
+            {
+                break;
+            }
+            else
+            {
+                System.out.println("Invalid win condition. Please input a win condition that is smaller than the shorter of the two dimensions");
+            }
+        }
+
         input.nextLine();
 
         Game game = new Game(numRows, numCols, winCondition);
-        Computer hal9000 = new Computer(game, 0.2, 0.9, 0.3);
-        hal9000.trainModel(sims);
+        Computer hal9000 = new Computer(game, 0.2, 0.9, 0.5);
+
+        String[] spinner = {"/", "-", "\\", "|"};
+        System.out.print("Training in progress: ");
+
+        final boolean[] spinnerRunning = { true };
+        Thread spinnerThread = new Thread(() -> {
+            int i = 0;
+            while (spinnerRunning[0]) {
+                System.out.print(spinner[i % spinner.length] + "\rTraining in progress: ");
+                i++;
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        });
+        spinnerThread.start();
+
+
+        double totalWinScore = 0.0;
+        long totalSimulations = 0;
+        double averageWinRate = 0.0;
+
+        while (averageWinRate <= 1.0)
+        {
+            double batchWinRate = hal9000.trainModel(1000);
+            totalSimulations += 1000;
+            totalWinScore += batchWinRate * 1000;
+            averageWinRate = totalWinScore / totalSimulations;
+        }
+
+        spinnerRunning[0] = false;
+        spinnerThread.join();
+        System.out.println("\rTraining complete.          ");
 
         while (true) 
         {
             game.resetBoard();
-            System.out.print("\n--- New Game ---\n");
+            System.out.print("\n---- New Game ----\n");
 
             while (true) 
             {
@@ -59,7 +132,7 @@ public class GameRunner
                     if (game.checkWin()) 
                     {
                         game.printBoard();
-                        System.out.println("The computer beat you, m8.");
+                        System.out.println("The computer beat you, m8. Soz.");
                         break;
                     }
                 }

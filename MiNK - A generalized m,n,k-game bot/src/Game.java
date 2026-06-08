@@ -120,7 +120,7 @@ public class Game
             }
 
             // Check piece match
-            if (board[r][c] != target)
+            if (!Objects.equals(board[r][c], target))
             {
                 return false;
             }
@@ -185,8 +185,20 @@ public class Game
 
     public void printBoard()
     {
+        char maxFile = (char) (numCols + 96); 
+        int maxRank = numRows;
+
+        int r = numRows;
         for (Boolean[] row : board)
         {
+            if (r > 9)
+            {
+                System.out.print(r + " ");
+            }
+            else
+            {
+                System.out.print(r + "  ");
+            }
             for (Boolean space : row)
             {
                 if (space == null)
@@ -202,7 +214,16 @@ public class Game
                     System.out.print(Colors.ANSI_BLUE + "O " + Colors.ANSI_RESET);
                 }
             }
+
             System.out.println();
+            r--;
         }
+
+        System.out.print("  "); // part of the coordinate printer
+        for (char c = 'a'; c <= maxFile; c++)
+        {
+            System.out.print(c + " ");
+        }
+        System.out.println();
     }
 }
