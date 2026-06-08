@@ -29,10 +29,10 @@ public class Computer
 
     private BigInteger getCompactState(Boolean[][] board) // A replacement for the deepToString method used earlier - compresses the board state into a single integer key so the model can support larger boards without long overflow
     {
-        return getBigIntegerState(board);
+        return getBoardState(board);
     }
 
-    private BigInteger getBigIntegerState(Boolean[][] board)
+    private BigInteger getBoardState(Boolean[][] board)
     {
         BigInteger state = BigInteger.ZERO;
         BigInteger base = BigInteger.valueOf(3);
@@ -50,21 +50,6 @@ public class Computer
         }
 
         return state;
-    }
-
-    private String getStringState(Boolean[][] board)
-    {
-        StringBuilder sb = new StringBuilder(game.getNumRows() * game.getNumCols());
-        for (Boolean[] row : board) 
-        {
-            for (Boolean val : row) 
-            {
-                if (val == null) { sb.append('-'); }
-                else if (val) { sb.append('X'); }
-                else { sb.append('O'); }
-            }
-        }
-        return sb.toString();
     }
 
     public float[] getRewards(BigInteger boardState)
