@@ -224,7 +224,7 @@ public class Game
             r--;
         }
 
-        System.out.print("  "); // part of the coordinate printer
+        System.out.print("   "); // part of the coordinate printer
         for (char c = 'a'; c <= maxFile; c++)
         {
             System.out.print(c + " ");

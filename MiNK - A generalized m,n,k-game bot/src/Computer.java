@@ -23,13 +23,22 @@ public class Computer
     public double getDiscountFactor() { return discountFactor; }
     public double getExplorationRate() { return explorationRate; }
     public double getLearningRate() { return learningRate; }
-    private String getCompactState(Boolean[][] board) { return getBoardState(board); }
     public void setExplorationRate(double e) { explorationRate = e; }
 
-    private String getBoardState(Boolean[][] board)
-    {
+    public String getBoardState(Boolean[][] board, boolean currentPlayer)
+    {   
         // compact string encoding: '0' = empty, '1' = true, '2' = false
         String s = new String();
+
+        // first, tack on who is playing
+        if (currentPlayer)
+        {
+            s += '0';
+        }
+        else
+        {
+            s += '1';
+        }
 
         for (Boolean[] row : board)
         {
@@ -136,10 +145,10 @@ public class Computer
 
     public int chooseMoveIndex()
     {
-        return chooseMoveIndex(getCompactState(game.getBoard()));
+        return chooseMoveIndex(getBoardState(game.getBoard(), game.getCurrentPlayer()));
     }
 
-    private int chooseMoveIndex(String currentState)
+    public int chooseMoveIndex(String currentState)
     {
         if (game.isBoardFull()) { throw new IllegalStateException("No available moves."); }
 
@@ -147,61 +156,65 @@ public class Computer
         {
             return chooseRandomMoveIndex();
         }
-
-        int immediateMove = chooseImmediateMoveIndex();
-        if (immediateMove != -1)
+        else // If not, then first try the heuristics if possible...
         {
-            return immediateMove;
-        }
-
-        int centerMove = chooseCenterMoveIndex();
-        if (centerMove != -1)
-        {
-            return centerMove;
-        }
-
-        float[] currentRewards = getRewards(currentState);
-        int bestMove = -1;   
-        double bestScore = (-1) * Double.MAX_VALUE;
-
-        double centerWeight = 0.5; // tuning parameter for proximity bonus
-        int centerRow = game.getNumRows() / 2;
-        int centerCol = game.getNumCols() / 2;
-        double maxDist = centerRow + centerCol;
-
-        for (int r = 0; r < game.getNumRows(); r++)
-        {
-            for (int c = 0; c < game.getNumCols(); c++)
+            int immediateMove = chooseImmediateMoveIndex();
+            if (immediateMove != -1)
             {
-                if (!game.isSpotOpen(r, c)) { continue; }
+                return immediateMove;
+            }
 
-                int move = game.getMoveIndex(r, c);
-                double reward = currentRewards[move];
+            int centerMove = chooseCenterMoveIndex();
+            if (centerMove != -1)
+            {
+                return centerMove;
+            }
+            
+            // then do what worked in the past (exploitation)
 
-                double dist = Math.abs(r - centerRow) + Math.abs(c - centerCol);
-                double centerBonus;
-                if (maxDist == 0)
-                {
-                    centerBonus = 0.0;
-                }
-                else
-                {
-                    centerBonus = ((maxDist - dist) / maxDist) * centerWeight;
-                }
+            float[] currentRewards = getRewards(currentState);
+            int bestMove = -1;   
+            double bestScore = (-1) * Double.MAX_VALUE;
 
-                double score = reward + centerBonus;
-                if (score > bestScore)
+            double centerWeight = 0.5; // tuning parameter for proximity bonus
+            int centerRow = game.getNumRows() / 2;
+            int centerCol = game.getNumCols() / 2;
+            double maxDist = centerRow + centerCol;
+
+            for (int r = 0; r < game.getNumRows(); r++)
+            {
+                for (int c = 0; c < game.getNumCols(); c++)
                 {
-                    bestScore = score;
-                    bestMove = move;
+                    if (!game.isSpotOpen(r, c)) { continue; }
+
+                    int move = game.getMoveIndex(r, c);
+                    double reward = currentRewards[move];
+
+                    double dist = Math.abs(r - centerRow) + Math.abs(c - centerCol);
+                    double centerBonus;
+                    if (maxDist == 0)
+                    {
+                        centerBonus = 0.0;
+                    }
+                    else
+                    {
+                        centerBonus = ((maxDist - dist) / maxDist) * centerWeight;
+                    }
+
+                    double score = reward + centerBonus;
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestMove = move;
+                    }
                 }
             }
-        }
 
-        return bestMove;
+            return bestMove;
+        }   
     }
 
-    private int chooseRandomMoveIndex()
+    public int chooseRandomMoveIndex()
     {
         int openSpots = game.getBoardSize() - game.getMoveCount();
         if (openSpots <= 0) { throw new IllegalStateException("No available moves."); }
@@ -266,47 +279,41 @@ public class Computer
             String lastState = null;
             int lastMove = -1;
 
-            while (true) 
+            while (true) // Training against the bot itself - any time it wins, it updates its weights based on what it learned
             { 
-                if (game.getCurrentPlayer()) // if it's the "player's" turn, then make a random move, and use the heuristics if neccesary
+                if (game.getCurrentPlayer())
                 {
-                    int randomMove = chooseRandomMoveIndex();
-                    int immediateMove = chooseImmediateMoveIndex();
-                    int centerMove = chooseCenterMoveIndex();
+                    String playerState = getBoardState(game.getBoard(), game.getCurrentPlayer());
+                    if (lastState != null) 
+                    {
+                        updateRewardsTable(lastState, lastMove, 0.0, playerState);
+                    }
 
-                    if (immediateMove != -1)
+                    int move = chooseMoveIndex(playerState);
+
+                    lastState = playerState;
+                    lastMove = move;
+
+                    game.makeMove(game.getRowFromIndex(lastMove), game.getColFromIndex(lastMove));
+
+                    if(game.checkWin())
                     {
-                        game.makeMove(game.getRowFromIndex(immediateMove), game.getColFromIndex(immediateMove));
-                    }
-                    else if (centerMove != -1)
-                    {
-                        game.makeMove(game.getRowFromIndex(centerMove), game.getColFromIndex(centerMove));
-                    }
-                    else
-                    {
-                        game.makeMove(game.getRowFromIndex(randomMove), game.getColFromIndex(randomMove));
-                    }
-                    if (game.checkWin())
-                    {
-                        if (lastState != null) // if the random player won, then "punish" the model (hence the reward of -1.0)
-                        {
-                            updateRewardsTable(lastState, lastMove, -1.0, null); 
-                        }
-                        winRate += 0;
+                        updateRewardsTable(lastState, lastMove, 1.0, null);
+                        winRate += 1;
                         break;
                     }
                 }
-                else // if it's the computer's turn, then put your thinking cap on
+                else
                 {
-                    String currentState = getCompactState(game.getBoard());
+                    String botState = getBoardState(game.getBoard(), game.getCurrentPlayer());
                     if (lastState != null) 
                     {
-                        updateRewardsTable(lastState, lastMove, 0.0, currentState);
+                        updateRewardsTable(lastState, lastMove, 0.0, botState);
                     }
 
-                    int move = chooseMoveIndex(currentState);
+                    int move = chooseMoveIndex(botState);
 
-                    lastState = currentState;
+                    lastState = botState;
                     lastMove = move;
 
                     game.makeMove(game.getRowFromIndex(lastMove), game.getColFromIndex(lastMove));
