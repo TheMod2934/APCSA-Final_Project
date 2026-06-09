@@ -101,15 +101,15 @@ public class Game
         Boolean target = board[row][col];
         if (target == null) return false;
 
-        int[][] directionDeltas = {
+        int[][] directions = {
             {0, 1},  // horizontal
             {1, 0},  // vertical
             {1, 1},  // diagonal down-right
             {1, -1}  // diagonal down-left
         };
 
-        int dRow = directionDeltas[direction][0];
-        int dCol = directionDeltas[direction][1];
+        int dRow = directions[direction][0];
+        int dCol = directions[direction][1];
 
         int count = 1;
 

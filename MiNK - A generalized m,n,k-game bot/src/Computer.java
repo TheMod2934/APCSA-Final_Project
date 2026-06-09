@@ -1,9 +1,8 @@
-import java.math.BigInteger; // needed to overcome the outofmemory errors (basically, im just gonna brute force it)
 import java.util.*;
 
 public class Computer 
 {
-    private final Map<BigInteger, float[]> rewardsTable;
+    private final Map<String, float[]> rewardsTable;
 
     private final Game game;
     private final double learningRate;
@@ -24,41 +23,48 @@ public class Computer
     public double getDiscountFactor() { return discountFactor; }
     public double getExplorationRate() { return explorationRate; }
     public double getLearningRate() { return learningRate; }
-
+    private String getCompactState(Boolean[][] board) { return getBoardState(board); }
     public void setExplorationRate(double e) { explorationRate = e; }
 
-    private BigInteger getCompactState(Boolean[][] board) // A replacement for the deepToString method used earlier - compresses the board state into a single integer key so the model can support larger boards without long overflow
+    private String getBoardState(Boolean[][] board)
     {
-        return getBoardState(board);
-    }
-
-    private BigInteger getBoardState(Boolean[][] board)
-    {
-        BigInteger state = BigInteger.ZERO;
-        BigInteger base = BigInteger.valueOf(3);
+        // compact string encoding: '0' = empty, '1' = true, '2' = false
+        String s = new String();
 
         for (Boolean[] row : board)
         {
             for (Boolean val : row)
             {
-                state = state.multiply(base);
-                if (val != null)
+                if (val == null)
                 {
-                    state = state.add(val ? BigInteger.ONE : BigInteger.valueOf(2));
+                    s += '0';
+                }
+                else if (val)
+                {
+                    s += '1';
+                }
+                else
+                {
+                    s += '2';
                 }
             }
         }
 
-        return state;
+        return s;
     }
 
-    public float[] getRewards(BigInteger boardState)
+    public float[] getRewards(String boardState)
     {
-        return rewardsTable.computeIfAbsent(boardState, key -> new float[game.getBoardSize()]);
+        // Ensure a rewards array exists for this board state, then return it.
+        if (!rewardsTable.containsKey(boardState))
+        {
+            rewardsTable.put(boardState, new float[game.getBoardSize()]); // if not, then put something there
+        }
+        return rewardsTable.get(boardState);
     }
 
     // Simulate the next move (hense the row/col, and the currentPlayer), and return true if it wins
-    private boolean isWinningMove(Boolean[][] board, int row, int col, boolean currentPlayer)
+    public boolean isWinningMove(Boolean[][] board, int row, int col, boolean currentPlayer)
     {
         board[row][col] = currentPlayer;
         boolean win = false;
@@ -74,17 +80,24 @@ public class Computer
     }
 
     
-    private int chooseCenterMoveIndex()
+    public int chooseCenterMoveIndex()
     {
         if (game.getNumRows() % 2 != 1 || game.getNumCols() % 2 != 1) { return -1; }
 
         int centerRow = game.getNumRows() / 2;
         int centerCol = game.getNumCols() / 2;
 
-        return game.isSpotOpen(centerRow, centerCol) ? game.getMoveIndex(centerRow, centerCol) : -1;
+        if (game.isSpotOpen(centerRow, centerCol))
+        {
+            return game.getMoveIndex(centerRow, centerCol);
+        }
+        else
+        {
+            return -1;
+        }
     }
 
-    private int chooseImmediateMoveIndex()
+    public int chooseImmediateMoveIndex()
     {
         Boolean[][] board = game.getBoard();
 
@@ -126,7 +139,7 @@ public class Computer
         return chooseMoveIndex(getCompactState(game.getBoard()));
     }
 
-    private int chooseMoveIndex(BigInteger currentState)
+    private int chooseMoveIndex(String currentState)
     {
         if (game.isBoardFull()) { throw new IllegalStateException("No available moves."); }
 
@@ -149,7 +162,7 @@ public class Computer
 
         float[] currentRewards = getRewards(currentState);
         int bestMove = -1;   
-        double bestScore = Double.NEGATIVE_INFINITY;    
+        double bestScore = (-1) * Double.MAX_VALUE;
 
         double centerWeight = 0.5; // tuning parameter for proximity bonus
         int centerRow = game.getNumRows() / 2;
@@ -166,7 +179,15 @@ public class Computer
                 double reward = currentRewards[move];
 
                 double dist = Math.abs(r - centerRow) + Math.abs(c - centerCol);
-                double centerBonus = (maxDist == 0) ? 0.0 : ((maxDist - dist) / maxDist) * centerWeight;
+                double centerBonus;
+                if (maxDist == 0)
+                {
+                    centerBonus = 0.0;
+                }
+                else
+                {
+                    centerBonus = ((maxDist - dist) / maxDist) * centerWeight;
+                }
 
                 double score = reward + centerBonus;
                 if (score > bestScore)
@@ -207,7 +228,7 @@ public class Computer
     }
 
     // Really the biggest AI generated part of this - the updater for the rewards table
-    public void updateRewardsTable(BigInteger oldState, int action, double reward, BigInteger newState)
+    public void updateRewardsTable(String oldState, int action, double reward, String newState)
     {
         float[] oldRewards = getRewards(oldState);
         double oldReward = oldRewards[action];
@@ -216,7 +237,7 @@ public class Computer
         if (newState != null) // not a terminal state
         {
             float[] newRewards = getRewards(newState);
-            maxFutureReward = Double.NEGATIVE_INFINITY;
+            maxFutureReward = (-1) * Double.MAX_VALUE;
 
             for (int r = 0; r < game.getNumRows(); r++)
             {
@@ -229,7 +250,7 @@ public class Computer
                 }
             }
 
-            if (maxFutureReward == Double.NEGATIVE_INFINITY) { maxFutureReward = 0.0; }
+            if (maxFutureReward == (-1) * Double.MAX_VALUE) { maxFutureReward = 0.0; }
         }
         // Apply the Q-learning formula
         oldRewards[action] = (float) (oldReward + learningRate * (reward + discountFactor * maxFutureReward - oldReward));
@@ -242,7 +263,7 @@ public class Computer
         for (long i = 0; i < numSimulations; i++)
         {
             game.resetBoard();
-            BigInteger lastState = null;
+            String lastState = null;
             int lastMove = -1;
 
             while (true) 
@@ -277,7 +298,7 @@ public class Computer
                 }
                 else // if it's the computer's turn, then put your thinking cap on
                 {
-                    BigInteger currentState = getCompactState(game.getBoard());
+                    String currentState = getCompactState(game.getBoard());
                     if (lastState != null) 
                     {
                         updateRewardsTable(lastState, lastMove, 0.0, currentState);
@@ -311,7 +332,7 @@ public class Computer
             }
         }
 
-        setExplorationRate(0.05); // IT'S GO TIME, BOIS!!!!!! (no more randomness b.c. we assume perfect rewards)
+        setExplorationRate(0.05); // IT'S GO TIME, BOIS!!!!!! (much less randomness b.c. we assume perfect rewards)
         return winRate;
     }
 
