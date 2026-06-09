@@ -14,12 +14,12 @@ public class Computer
         rewardsTable = new HashMap<>();
 
         game = g;
-        learningRate = l;
-        discountFactor = d;
-        explorationRate = e;
+        learningRate = l; // Learning Rate: how fast the model adjusts its rewards (constant used in the updator)
+        discountFactor = d; // Discount Factor: how much the model values a future reward (constant used in the updator)
+        explorationRate = e; // Exploration Rate: the big one, or the probabilty (as defined with Math.random()) that the model takes an exploitatory/exploratory path
     }
 
-
+    // Some getters (and a setter, my god)
     public double getDiscountFactor() { return discountFactor; }
     public double getExplorationRate() { return explorationRate; }
     public double getLearningRate() { return learningRate; }
@@ -88,7 +88,7 @@ public class Computer
         return win;
     }
 
-    
+    // The center heuristic - optimize choosing moves near the center
     public int chooseCenterMoveIndex()
     {
         if (game.getNumRows() % 2 != 1 || game.getNumCols() % 2 != 1) { return -1; }
@@ -176,7 +176,7 @@ public class Computer
             int bestMove = -1;   
             double bestScore = (-1) * Double.MAX_VALUE;
 
-            double centerWeight = 0.5; // tuning parameter for proximity bonus
+            double centerWeight = 0.5; // tuning parameter for center proximity bonus
             int centerRow = game.getNumRows() / 2;
             int centerCol = game.getNumCols() / 2;
             double maxDist = centerRow + centerCol;
@@ -189,14 +189,16 @@ public class Computer
 
                     int move = game.getMoveIndex(r, c);
                     double reward = currentRewards[move];
-
+                    
                     double dist = Math.abs(r - centerRow) + Math.abs(c - centerCol);
+
+                    // prioritize moves near the center if possible - gives the bot a little more strategy
                     double centerBonus;
                     if (maxDist == 0)
                     {
                         centerBonus = 0.0;
                     }
-                    else
+                    else // update the center bonus to figure out whether or not the center is where its at
                     {
                         centerBonus = ((maxDist - dist) / maxDist) * centerWeight;
                     }
