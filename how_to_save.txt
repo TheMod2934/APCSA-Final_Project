@@ -1,6 +1,0 @@
-commands to save stuff to the repo
-
-git remote add origin https://github.com/TheMod2934/APCSA-Final_Project.git
-git add .
-git commit -m "Add project scaffolding"
-git push -u origin main
