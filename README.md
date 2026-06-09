@@ -12,4 +12,4 @@ I chose an _m,n,k_-game, as they are very easy to understand, and thus very easy
 
 ### How was this created?
 
-I created this project in Visual Studio Code, with some help from GitHub Copilot (the LLM built into VS Code) to make a template for the project, along with general debugging. For more information on the creation of this project, please check `CREATION_LOG.md` in the project files.
+I created this project in Visual Studio Code, with some help from GitHub Copilot (the LLM built into VS Code) to make a template for the project, along with general debugging. For more information on the creation of this project, please check `CREATION_LOG.md` in the project files. The `src` folder in the project files contains all of the code of this project, should they need to be viewed.
