@@ -58,7 +58,7 @@ public class GameRunner
         input.nextLine();
 
         Game game = new Game(numRows, numCols, winCondition);
-        Computer hal9000 = new Computer(game, 0.2, 0.9, 0.5);
+        Computer hal9000 = new Computer(game, 0.2, 0.9, 0.5, 0.5);
 
         String[] spinner = {"/", "-", "\\", "|"};
         System.out.print("Training in progress: ");
@@ -79,14 +79,14 @@ public class GameRunner
         });
         spinnerThread.start();
 
-
+        // dynamic win counting - if the wins are more than the win rate, then stop the training
         double totalWinScore = 0.0;
         long totalSimulations = 0;
         double averageWinRate = 0.0;
 
         while (averageWinRate <= 1.0)
         {
-            double batchWinRate = hal9000.trainModel(1000);
+            double batchWinRate = hal9000.trainModel(10000);
             totalSimulations += 1000;
             totalWinScore += batchWinRate * 1000;
             averageWinRate = totalWinScore / totalSimulations;
