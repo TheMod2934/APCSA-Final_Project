@@ -72,22 +72,6 @@ public class Computer
         return rewardsTable.get(boardState);
     }
 
-    // Simulate the next move (hense the row/col, and the currentPlayer), and return true if it wins
-    public boolean isWinningMove(Boolean[][] board, int row, int col, boolean currentPlayer)
-    {
-        board[row][col] = currentPlayer;
-        boolean win = false;
-        for (int i = 0; i < 4; i++)
-        {
-            if (game.checkDirection(board, row, col, i, game.getWinCondition()))
-            {
-                win = true;
-            }
-        }
-        board[row][col] = null;
-        return win;
-    }
-
     // The center heuristic - optimize choosing moves near the center
     public int chooseCenterMoveIndex()
     {
@@ -106,10 +90,40 @@ public class Computer
         }
     }
 
+    // Simulate the next move (hense the row/col, and the currentPlayer), and return true if it wins (or would win the if not blocked pretty soon)
+    public boolean isWinningMove(Boolean[][] board, int row, int col, boolean currentPlayer)
+    {
+        board[row][col] = currentPlayer;
+        boolean win = false;
+        for (int i = 0; i < 4; i++)
+        {
+            if (game.checkDirection(board, row, col, i, game.getWinCondition()))
+            {
+                win = true;
+            }
+        }
+        board[row][col] = null;
+        return win;
+    }
+
     public int chooseImmediateMoveIndex()
     {
         Boolean[][] board = game.getBoard();
 
+        // Check for winning moves (attack first)
+        for (int r = 0; r < game.getNumRows(); r++)
+        {
+            for (int c = 0; c < game.getNumCols(); c++)
+            {
+                if (!game.isSpotOpen(r, c)) { continue; }
+                if (isWinningMove(board, r, c, true))
+                {
+                    return game.getMoveIndex(r, c);
+                }
+            }
+        }
+
+        // Check for blocking opponent wins (defend)
         for (int r = 0; r < game.getNumRows(); r++)
         {
             for (int c = 0; c < game.getNumCols(); c++)
@@ -122,14 +136,25 @@ public class Computer
             }
         }
 
-        for (int r = 0; r < game.getNumRows(); r++)
+        // Check for near-wins (2 in a row, if winCondition > 3)
+        if (game.getWinCondition() > 3)
         {
-            for (int c = 0; c < game.getNumCols(); c++)
+            for (int r = 0; r < game.getNumRows(); r++)
             {
-                if (!game.isSpotOpen(r, c)) { continue; }
-                if (isWinningMove(board, r, c, true))
+                for (int c = 0; c < game.getNumCols(); c++)
                 {
-                    return game.getMoveIndex(r, c);
+                    if (!game.isSpotOpen(r, c)) { continue; }
+                    
+                    board[r][c] = true;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (game.checkDirection(board, r, c, i, game.getWinCondition() - 1))
+                        {
+                            board[r][c] = null;
+                            return game.getMoveIndex(r, c);
+                        }
+                    }
+                    board[r][c] = null;
                 }
             }
         }
